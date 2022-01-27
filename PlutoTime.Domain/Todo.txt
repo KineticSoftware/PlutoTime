@@ -1,0 +1,9 @@
+﻿1. Get Latitude / Longitude
+2. Calculate Julian Date/Time (done)
+	Elliptic Geometries require julian date time calculations
+3. Find Solar Elevation
+	Determine solar zenith angle angle from users latitude and longitude which leads to solar elevation
+4. Find the Next Earth Time that matches the brightness of Pluto
+	Uses bisection method to find next julian date when solar elevation angle is at target
+5. Make Pretty Print Text explaining
+	Turn all the magical data into nice text the user can understand. 

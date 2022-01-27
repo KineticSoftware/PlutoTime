@@ -1,0 +1,107 @@
+﻿
+target_angle = -1.5,
+eccent_earth_orbit = .0167042317652,
+sin_obliq_corr = .397764267077,
+var_y = .0430314896879,
+
+getNextTime: function() {
+	if ("" != this.state.lat && "" != this.state.long) {
+		var jd = this.get_jd(),
+			elevation = this.solar_elevation(jd),
+			next = this.find_time(jd),
+			next_time = this.make_text(elevation, next, jd);
+		this.setState({
+			modal_open: !0,
+			jd: jd,
+			elevation: elevation,
+			next: next,
+			next_time: next_time
+		})
+	} else this.setState({
+		error: "You must enter a location to find the next Pluto time"
+	})
+}
+
+get_jd: function() {
+	// 2440587.5 days + UNIX TIME in days === Julian Day
+	return .001 * (new Date).getTime() / 86400 + 2440587.5
+}
+
+solar_elevation: function(julian_date) {
+	var hour_angle, atmo, latitude_r = this.state.lat * Math.PI / 180,
+		time_ut = julian_date - .5 - Math.floor(julian_date - .5),
+		julian_century = (julian_date - 2451545) / 36525,
+		gmls_r = (280.46646 + julian_century * (36000.76983 + 3032e-7 * julian_century)) % 360 * Math.PI / 180,
+		gmas_r = (357.52911 + julian_century * (35999.05029 - 1537e-7 * julian_century)) * Math.PI / 180,
+		sun_app_long_r = gmls_r + (Math.sin(gmas_r) * (1.914602 - julian_century * (.004817 + 14e-6 * julian_century)) + Math.sin(2 * gmas_r) * (.019993 - 101e-6 * julian_century) + 289e-6 * Math.sin(3 * gmas_r)) * Math.PI / 180,
+		sun_declin_r = Math.asin(sin_obliq_corr * Math.sin(sun_app_long_r)),
+		true_solar_time = (1440 * time_ut + 180 / Math.PI * 4 * (var_y * Math.sin(2 * gmls_r) - 2 * eccent_earth_orbit * Math.sin(gmas_r) + 4 * eccent_earth_orbit * var_y * Math.sin(gmas_r) * Math.cos(2 * gmls_r) - .5 * var_y * var_y * Math.sin(4 * gmls_r) - 1.25 * eccent_earth_orbit * eccent_earth_orbit * Math.sin(2 * gmas_r)) + 4 * this.state.long) % 1440 * Math.PI / 180;
+	hour_angle = true_solar_time < 0 ? true_solar_time / 4 + Math.PI : true_solar_time / 4 - Math.PI;
+	var solar_zenith_angle = Math.acos(Math.sin(latitude_r) * Math.sin(sun_declin_r) + Math.cos(latitude_r) * Math.cos(sun_declin_r) * Math.cos(hour_angle)),
+		solar_elevation_angle = Math.PI / 2 - solar_zenith_angle,
+		tane = Math.tan(solar_elevation_angle),
+		W2 = 180 * solar_elevation_angle / Math.PI;
+	return atmo = W2 > 85 ? 0 : W2 > 5 ? 58.1 / tane - .07 / Math.pow(tane, 3) + 86e-6 / Math.pow(tane, 5) : W2 > -.575 ? 1735 + W2 * (W2 * (103.4 + W2 * (.711 * W2 - 12.79)) - 518.2) : -20.772 / tane, 180 * solar_elevation_angle / Math.PI + atmo / 3600
+}
+
+find_time: function(a) {
+	var b = 1 * a;
+	if (this.solar_elevation(a) <= target_angle)
+		for (; this.solar_elevation(b + 115741e-9) <= target_angle;) b += 115741e-9;
+	else
+		for (; this.solar_elevation(b + 115741e-9) > target_angle;) b += 115741e-9;
+	return b
+}
+
+make_text: function(ele, next, jd) {
+	undefined;
+	var dt = next - jd;
+	if (dt <= 5 / 1440) return "It's Pluto Time now!";
+	var tnext = this.format_next(dt);
+	return (ele > target_angle ? "After sunset" : "Before sunrise") + " on " + this.format_date(next) + " (" + tnext + " away)"
+}
+
+format_next: function(dd) {
+	var d = Math.floor(dd),
+		hh = 24 * (dd - d),
+		h = Math.floor(hh),
+		mm = 60 * (hh - h),
+		m = Math.floor(mm);
+	m > 59 && (m = 0, h += 1);
+	var ret = "";
+	return d > 0 && (ret += d + " days, "), h > 0 && (ret += h + " hours, "), ret += m + " minutes"
+}
+
+format_date: function(jd) {
+	var monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+		n = this.get_date(jd),
+		min = Math.floor(n.getMinutes());
+	min < 10 && (min = "0" + min), min > 59 ? (min = "00", off = 1) : off = 0;
+	var hr = off + n.getHours();
+	hr > 12 ? (hr -= 12, ap = "PM") : ap = "AM";
+	var tz = n.toString().split(" ")[6].replace("(", "").replace(")", "");
+	return ret = monthNames[n.getMonth()] + " " + n.getDate() + " at " + hr + ":" + min + " " + ap + " " + tz, ret
+}
+
+getNextTime: function() {
+	if ("" != this.state.lat && "" != this.state.long) {
+		var jd = this.get_jd(),
+			elevation = this.solar_elevation(jd),
+			next = this.find_time(jd),
+			next_time = this.make_text(elevation, next, jd);
+		this.setState({
+			modal_open: !0,
+			jd: jd,
+			elevation: elevation,
+			next: next,
+			next_time: next_time
+		})
+	} else this.setState({
+		error: "You must enter a location to find the next Pluto time"
+	})
+}
+		
+get_date: function(jd) {
+	var d = new Date;
+	return d.setTime(86400 * (jd - 2440587.5) * 1e3), d
+}
